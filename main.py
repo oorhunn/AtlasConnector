@@ -6,7 +6,7 @@ import telemetry
 from dronekit import connect, Command, VehicleMode, LocationGlobalRelative
 from dronekit import Vehicle
 
-vehicle = connect('COM8', baud=115200)
+vehicle = connect('COM5', baud=115200)
 temtem = telemetry.Telemetry()
 
 
@@ -27,6 +27,7 @@ def relative_location_callback(self, attr_name, value):
 
 def get_mode():
     temtem.mode = vehicle.mode
+
 
 
 def arm():
@@ -172,22 +173,11 @@ def distance_to_current_waypoint():
     return distancetopoint
 
 
-@vehicle.on_attribute('gps_0')
-def gps_callback(self, attr_name, value):
-    print(attr_name, value)
-
-
-print(vehicle.system_status)
-# vehicle.add_attribute_listener("*", wildcard_callback)
-
-
-while True:
-    pass
-
-
 def wildcard_callback(self, attr_name, value):
     print(f"CALLBACK {attr_name} : {value}")
 
+
+# 11171 ya da 1172,     21004 210074
 
 def get_home_location():
     cmds = vehicle.commands
@@ -208,12 +198,15 @@ def airspeed_callback(self, attr_name, value):
 
 @vehicle.on_attribute('gps_0')
 def gps_callback(self, attr_name, value):
-    temtem.NumSat = value.num_sat
+    temtem.NumSat = value.satellites_visible
+    temtem.gdop = value.eph
+
 
 
 @vehicle.on_attribute('heading')
 def heading_callback(self, attr_name, value):
     temtem.heading = value
+    temtem.heightC = value
 
 
 @vehicle.on_attribute('battery')
@@ -226,6 +219,8 @@ def battery_callback(self, attr_name, value):
 def attitude_callback(self, attr_name, value):
     temtem.pitch = value.pitch
     temtem.roll = value.roll
+    temtem.heightC = value.heading
+
     # TODO: why there is no yaw
     # temtem.yaw = value.yaw
 
@@ -234,9 +229,25 @@ def attitude_callback(self, attr_name, value):
 def velocity_callback(self, attr_name, value):
     print(attr_name, value)
 
-
+import math
 @vehicle.on_attribute('location.global_frame')
 def global_location_callback(self, attr_name, value):
-    temtem.lat = value.lat
-    temtem.lon = value.lon
+    temtem.lat = value.lat * (math.pi/180)
+    temtem.lon = value.lon * (math.pi/180)
     temtem.alt = value.alt
+    temtem.rH = value.alt
+
+@vehicle.on_attribute('wind')
+def wind_callback(self, attr_name, value):
+    # attr_name == 'raw_imu'
+    # value == vehicle.raw_imu
+    temtem.windSpeed = value.wind_speed
+
+vehicle.add_attribute_listener('gps_0', gps_callback)
+vehicle.add_attribute_listener('wind', wind_callback)
+
+
+
+while True:
+    time.sleep(0.1)
+    temtem.sendTelemetry()

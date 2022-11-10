@@ -1,14 +1,21 @@
+import socket
 
-
-
+def OpenSocket(port: int):
+    host = socket.gethostname()
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client_socket.connect((host, port))
+    return client_socket
 
 class Telemetry:
+    mSocket: socket.socket
+
+
     mheader = 0
     ykiId = 0
     uckId = 0
     gorevID = 0
     MID = 100
-    mode = 100 #
+    mode = 125 #
     lat = 34.12 #
     lon = 36.22 #
     alt = 900 #
@@ -19,7 +26,7 @@ class Telemetry:
     rH = 0  # Relative Height to Ground
     rDist = 0  # Distance from launch point
     groundSpeed = 10 #
-    windSpeed = 10
+    windSpeed = -1
     windHeading = 0  # Rüzgar yönü
     volts = 17 #
     amps = 4   #
@@ -30,12 +37,15 @@ class Telemetry:
     distTraveled = 0  # Distance covered since the launch
     capacity = 0  # Total Power left
     PPKStat = 0  # None
-    NumSat = 0  # Number of satellites #
+    NumSat = 11111  # Number of satellites #
     BatStat = 0
     heightC = 0  # Hedeflenen yükseklik
     subMode = 0  # Bunun sayıları var
     crc = 0  # çöp
     gorevDosyasi = "dosya"  # arayuz icin gerekli
+
+    def __init__(self):
+        self.openTelemetryPort()
 
     def constructMessage(self):
         return str(self.mheader) + ";" + \
@@ -73,5 +83,8 @@ class Telemetry:
                str(self.gorevDosyasi)
 
 
-    def send_to_udp(self):
-        pass
+    def openTelemetryPort(self):
+        self.mSocket = OpenSocket(21071)
+
+    def sendTelemetry(self):
+        self.mSocket.send(self.constructMessage().encode())
